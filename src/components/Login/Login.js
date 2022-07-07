@@ -1,77 +1,89 @@
-import React, { useState, useEffect } from 'react';
-
+import React, { useState, useEffect, useReducer } from 'react';
 import Card from '../UI/Card/Card';
 import classes from './Login.module.css';
 import Button from '../UI/Button/Button';
 
+const emailReducer = (state, action) => {
+  if (action.type === 'USER_INPUT') {
+    return { value: action.value, isValid: action.value.includes('@') };
+  }
+  if (action.type === 'INPUT_BLUR') {
+    return { value: state.value, isValid: state.value.includes('@') };
+  }
+  return { value: '', isValid: false };
+};
+
+const passwordReducer = (state, action) => {
+  if (action.type === 'USER_INPUT') {
+    return { value: action.value, isValid: action.value.trim().length > 6 };
+  }
+  if (action.type === 'INPUT_BLUR') {
+    return { value: state.value, isValid: state.value.trim().length > 6 };
+  }
+  return { value: '', isValid: false };
+};
+
 const Login = (props) => {
-  const [enteredEmail, setEnteredEmail] = useState('');
-  const [emailIsValid, setEmailIsValid] = useState();
-  const [enteredPassword, setEnteredPassword] = useState('');
-  const [passwordIsValid, setPasswordIsValid] = useState();
+
   const [formIsValid, setFormIsValid] = useState(false);
 
-  const emailChangeHandler = (event) => {
-    setEnteredEmail(event.target.value);
-  };
+  const [emailState, dispatchEmail] = useReducer(emailReducer, {
+    value: '',
+    isValid: null,
+  });
 
-  const passwordChangeHandler = (event) => {
-    setEnteredPassword(event.target.value);
-  };
-
-  const validateEmailHandler = () => {
-    setEmailIsValid(enteredEmail.includes('@'));
-  };
-
-  const validatePasswordHandler = () => {
-    setPasswordIsValid(enteredPassword.trim().length > 6);
-  };
+  const [passwordState, dispatchPassword] = useReducer(passwordReducer, {
+    value: '',
+    isValid: null,
+  });
 
   const submitHandler = (event) => {
     event.preventDefault();
-    props.onLogin(enteredEmail, enteredPassword);
+    props.onLogin(emailState.value, passwordState.value);
   };
+
+  const { isValid: emailIsValid } = emailState;
+  const { isValid: passwordIsValid } = passwordState;
 
   useEffect(() => {
     const validationDelayTimer = setTimeout(() => {
       setFormIsValid(
-        enteredEmail.includes('@') && enteredPassword.trim().length > 6
+        emailIsValid && passwordIsValid
       );
     }, 500);
 
     return () => {
       clearTimeout(validationDelayTimer);
     }
-
-  }, [enteredEmail, enteredPassword]);
+  }, [passwordIsValid, emailIsValid]);
 
   return (
     <Card className={classes.login}>
       <form onSubmit={submitHandler}>
         <div
-          className={`${classes.control} ${emailIsValid === false ? classes.invalid : ''
+          className={`${classes.control} ${emailState.isValid === false ? classes.invalid : ''
             }`}
         >
           <label htmlFor="email">E-Mail</label>
           <input
             type="email"
             id="email"
-            value={enteredEmail}
-            onChange={emailChangeHandler}
-            onBlur={validateEmailHandler}
+            value={emailState.value}
+            onChange={(event) => { dispatchEmail({ type: 'USER_INPUT', value: event.target.value }) }}
+            onBlur={() => { dispatchEmail({ type: 'INPUT_BLUR' }) }}
           />
         </div>
         <div
-          className={`${classes.control} ${passwordIsValid === false ? classes.invalid : ''
+          className={`${classes.control} ${passwordState.isValid === false ? classes.invalid : ''
             }`}
         >
           <label htmlFor="password">Password</label>
           <input
             type="password"
             id="password"
-            value={enteredPassword}
-            onChange={passwordChangeHandler}
-            onBlur={validatePasswordHandler}
+            value={passwordState.value}
+            onChange={(event) => { dispatchPassword({ type: 'USER_INPUT', value: event.target.value }) }}
+            onBlur={() => { dispatchPassword({ type: 'INPUT_BLUR' }) }}
           />
         </div>
         <div className={classes.actions}>
